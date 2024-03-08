@@ -79,232 +79,189 @@ fn init_calculate(settings: Settings, products: Vec<Product>) -> anyhow::Result<
             products_with_settings
                 .par_iter()
                 .for_each(|product_with_settings| {
-                    if let Some(product) = calculate_similarity(
-                        &settings,
-                        product_without_settings,
-                        product_with_settings,
-                    ) {
-                        let mut products = products
-                            .lock()
-                            .expect("Lock is already held by the current thread.");
+                    settings
+                        .similarities_types
+                        .par_iter()
+                        .for_each(|similarity_type| match *similarity_type {
+                            SimilarityType::Hamming(min) => {
+                                if let Ok(similarity) = strsim::hamming(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                ) {
+                                    if min < similarity {
+                                        let mut products = products
+                                            .lock()
+                                            .expect("Lock is already held by the current thread.");
 
-                        products.push(product);
-                    }
+                                        products.push(Product::new_with_usize_similarity(
+                                            product_without_settings,
+                                            product_with_settings,
+                                            similarity_type,
+                                            similarity,
+                                        ));
+                                    }
+                                }
+                            }
+                            SimilarityType::Levenshtein(min) => {
+                                let similarity = strsim::levenshtein(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                );
+
+                                if min < similarity {
+                                    let mut products = products
+                                        .lock()
+                                        .expect("Lock is already held by the current thread.");
+
+                                    products.push(Product::new_with_usize_similarity(
+                                        product_without_settings,
+                                        product_with_settings,
+                                        similarity_type,
+                                        similarity,
+                                    ));
+                                }
+                            }
+                            SimilarityType::NormalizedLevenshtein(min) => {
+                                let similarity = strsim::normalized_levenshtein(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                );
+
+                                if min < similarity {
+                                    let mut products = products
+                                        .lock()
+                                        .expect("Lock is already held by the current thread.");
+
+                                    products.push(Product::new_with_f64_similarity(
+                                        product_without_settings,
+                                        product_with_settings,
+                                        similarity_type,
+                                        similarity,
+                                    ));
+                                }
+                            }
+                            SimilarityType::OsaDistance(min) => {
+                                let similarity = strsim::osa_distance(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                );
+
+                                if min < similarity {
+                                    let mut products = products
+                                        .lock()
+                                        .expect("Lock is already held by the current thread.");
+
+                                    products.push(Product::new_with_usize_similarity(
+                                        product_without_settings,
+                                        product_with_settings,
+                                        similarity_type,
+                                        similarity,
+                                    ));
+                                }
+                            }
+                            SimilarityType::DamerauLevenshtein(min) => {
+                                let similarity = strsim::damerau_levenshtein(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                );
+
+                                if min < similarity {
+                                    let mut products = products
+                                        .lock()
+                                        .expect("Lock is already held by the current thread.");
+
+                                    products.push(Product::new_with_usize_similarity(
+                                        product_without_settings,
+                                        product_with_settings,
+                                        similarity_type,
+                                        similarity,
+                                    ));
+                                }
+                            }
+                            SimilarityType::NormalizedDamerauLevenshtein(min) => {
+                                let similarity = strsim::normalized_damerau_levenshtein(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                );
+
+                                if min < similarity {
+                                    let mut products = products
+                                        .lock()
+                                        .expect("Lock is already held by the current thread.");
+
+                                    products.push(Product::new_with_f64_similarity(
+                                        product_without_settings,
+                                        product_with_settings,
+                                        similarity_type,
+                                        similarity,
+                                    ));
+                                }
+                            }
+                            SimilarityType::Jaro(min) => {
+                                let similarity = strsim::jaro(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                );
+
+                                if min < similarity {
+                                    let mut products = products
+                                        .lock()
+                                        .expect("Lock is already held by the current thread.");
+
+                                    products.push(Product::new_with_f64_similarity(
+                                        product_without_settings,
+                                        product_with_settings,
+                                        similarity_type,
+                                        similarity,
+                                    ));
+                                }
+                            }
+                            SimilarityType::JaroWinkler(min) => {
+                                let similarity = strsim::jaro_winkler(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                );
+
+                                if min < similarity {
+                                    let mut products = products
+                                        .lock()
+                                        .expect("Lock is already held by the current thread.");
+
+                                    products.push(Product::new_with_f64_similarity(
+                                        product_without_settings,
+                                        product_with_settings,
+                                        similarity_type,
+                                        similarity,
+                                    ));
+                                }
+                            }
+                            SimilarityType::SorensenDice(min) => {
+                                let similarity = strsim::sorensen_dice(
+                                    &product_without_settings.name,
+                                    &product_with_settings.name,
+                                );
+
+                                if min < similarity {
+                                    let mut products = products
+                                        .lock()
+                                        .expect("Lock is already held by the current thread.");
+
+                                    products.push(Product::new_with_f64_similarity(
+                                        product_without_settings,
+                                        product_with_settings,
+                                        similarity_type,
+                                        similarity,
+                                    ));
+                                }
+                            }
+                        });
                 });
         });
 
     let products = Arc::try_unwrap(products)
-        .expect("Error on try_unwrap products.")
+        .expect("Error on Arc::try_unwrap products.")
         .into_inner()
-        .expect("Error on try_unwrap::into_inner products.");
+        .expect("Error on Arc::try_unwrap::into_inner products.");
 
     Ok(products)
-}
-
-fn calculate_similarity(
-    settings: &Settings,
-    product_without_settings: &Product,
-    product_with_settings: &Product,
-) -> Option<Product> {
-    for similarity_type in &settings.similarities_types {
-        match *similarity_type {
-            SimilarityType::Hamming(min) => {
-                match strsim::hamming(&product_without_settings.name, &product_with_settings.name) {
-                    Ok(value) => {
-                        tracing::info!(
-                            "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                            product_without_settings.name,
-                            product_with_settings.name,
-                            similarity_type,
-                            value
-                        );
-
-                        if min < value {
-                            return Some(Product::new(
-                                product_without_settings,
-                                product_with_settings,
-                            ));
-                        }
-                    }
-                    Err(e) => {
-                        tracing::info!(
-                            "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                            product_without_settings.name,
-                            product_with_settings.name,
-                            similarity_type,
-                            e
-                        );
-                    }
-                }
-            }
-            SimilarityType::Levenshtein(min) => {
-                let value = strsim::levenshtein(
-                    &product_without_settings.name,
-                    &product_with_settings.name,
-                );
-
-                tracing::info!(
-                    "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                    product_without_settings.name,
-                    product_with_settings.name,
-                    similarity_type,
-                    value
-                );
-
-                if min < value {
-                    return Some(Product::new(
-                        product_without_settings,
-                        product_with_settings,
-                    ));
-                }
-            }
-            SimilarityType::NormalizedLevenshtein(min) => {
-                let value = strsim::normalized_levenshtein(
-                    &product_without_settings.name,
-                    &product_with_settings.name,
-                );
-
-                tracing::info!(
-                    "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                    product_without_settings.name,
-                    product_with_settings.name,
-                    similarity_type,
-                    value
-                );
-
-                if min < value {
-                    return Some(Product::new(
-                        product_without_settings,
-                        product_with_settings,
-                    ));
-                }
-            }
-            SimilarityType::OsaDistance(min) => {
-                let value = strsim::osa_distance(
-                    &product_without_settings.name,
-                    &product_with_settings.name,
-                );
-
-                tracing::info!(
-                    "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                    product_without_settings.name,
-                    product_with_settings.name,
-                    similarity_type,
-                    value
-                );
-
-                if min < value {
-                    return Some(Product::new(
-                        product_without_settings,
-                        product_with_settings,
-                    ));
-                }
-            }
-            SimilarityType::DamerauLevenshtein(min) => {
-                let value = strsim::damerau_levenshtein(
-                    &product_without_settings.name,
-                    &product_with_settings.name,
-                );
-
-                tracing::info!(
-                    "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                    product_without_settings.name,
-                    product_with_settings.name,
-                    similarity_type,
-                    value
-                );
-
-                if min < value {
-                    return Some(Product::new(
-                        product_without_settings,
-                        product_with_settings,
-                    ));
-                }
-            }
-            SimilarityType::NormalizedDamerauLevenshtein(min) => {
-                let value = strsim::normalized_damerau_levenshtein(
-                    &product_without_settings.name,
-                    &product_with_settings.name,
-                );
-
-                tracing::info!(
-                    "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                    product_without_settings.name,
-                    product_with_settings.name,
-                    similarity_type,
-                    value
-                );
-
-                if min < value {
-                    return Some(Product::new(
-                        product_without_settings,
-                        product_with_settings,
-                    ));
-                }
-            }
-            SimilarityType::Jaro(min) => {
-                let value =
-                    strsim::jaro(&product_without_settings.name, &product_with_settings.name);
-
-                tracing::info!(
-                    "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                    product_without_settings.name,
-                    product_with_settings.name,
-                    similarity_type,
-                    value
-                );
-
-                if min < value {
-                    return Some(Product::new(
-                        product_without_settings,
-                        product_with_settings,
-                    ));
-                }
-            }
-            SimilarityType::JaroWinkler(min) => {
-                let value = strsim::jaro_winkler(
-                    &product_without_settings.name,
-                    &product_with_settings.name,
-                );
-
-                tracing::info!(
-                    "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                    product_without_settings.name,
-                    product_with_settings.name,
-                    similarity_type,
-                    value
-                );
-
-                if min < value {
-                    return Some(Product::new(
-                        product_without_settings,
-                        product_with_settings,
-                    ));
-                }
-            }
-            SimilarityType::SorensenDice(min) => {
-                let value = strsim::sorensen_dice(
-                    &product_without_settings.name,
-                    &product_with_settings.name,
-                );
-
-                tracing::info!(
-                    "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
-                    product_without_settings.name,
-                    product_with_settings.name,
-                    similarity_type,
-                    value
-                );
-
-                if min < value {
-                    return Some(Product::new(
-                        product_without_settings,
-                        product_with_settings,
-                    ));
-                }
-            }
-        }
-    }
-
-    None
 }

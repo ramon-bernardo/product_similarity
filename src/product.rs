@@ -7,6 +7,8 @@ use std::{
     path::Path,
 };
 
+use crate::settings::SimilarityType;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Product {
     pub id: String,
@@ -17,7 +19,41 @@ pub struct Product {
 impl Product {
     pub const FILE: &'static str = "products.json";
 
-    pub fn new(product_without_settings: &Product, product_with_settings: &Product) -> Self {
+    pub fn new_with_usize_similarity(
+        product_without_settings: &Product,
+        product_with_settings: &Product,
+        similarity_type: &SimilarityType,
+        similarity: usize,
+    ) -> Self {
+        tracing::info!(
+            "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
+            product_without_settings.name,
+            product_with_settings.name,
+            similarity_type,
+            similarity
+        );
+
+        Self {
+            id: product_without_settings.id.clone(),
+            name: product_without_settings.name.clone(),
+            settings_id: product_with_settings.settings_id.clone(),
+        }
+    }
+
+    pub fn new_with_f64_similarity(
+        product_without_settings: &Product,
+        product_with_settings: &Product,
+        similarity_type: &SimilarityType,
+        similarity: f64,
+    ) -> Self {
+        tracing::info!(
+            "Product [{:?}] -> [{:?}]: {:?} (Result: {:?})",
+            product_without_settings.name,
+            product_with_settings.name,
+            similarity_type,
+            similarity
+        );
+
         Self {
             id: product_without_settings.id.clone(),
             name: product_without_settings.name.clone(),
